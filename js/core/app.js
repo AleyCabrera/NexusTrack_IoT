@@ -25,10 +25,10 @@ const AppConfig = {
     version: '2.0.0',
     
     /** Nombre de la aplicación */
-    name: 'Smart Monitor',
+    name: 'NexusTrack IoT',
     
     /** Autor */
-    author: 'Smart Monitor Team',
+    author: 'Aley Cabrera D Team',
     
     /** Descripción */
     description: 'Sistema de monitoreo IoT para cámaras frigoríficas'

@@ -1,6 +1,6 @@
 /**
  * ==========================================
- * SMART MONITOR - DASHBOARD CONTROLLER
+ * NexusTrack IoT - DASHBOARD CONTROLLER
  * ==========================================
  */
 
@@ -84,27 +84,6 @@ class DashboardController {
     setupFirebaseListeners() {
         try {
             const fb = window.FirebaseService;
-            if (!fb) {
-                console.error('❌ FirebaseService no está definido');
-                return;
-            }
-            
-            const sensorListener = fb.onSensorData(this.handleSensorData);
-            if (sensorListener) this.listeners.push(sensorListener);
-            
-            const alertsListener = fb.onAlerts(this.handleAlerts);
-            if (alertsListener) this.listeners.push(alertsListener);
-            
-            console.log('📡 Listeners configurados');
-            
-        } catch (error) {
-            console.error('❌ Error configurando listeners:', error);
-        }
-    }
-
-    setupFirebaseListeners() {
-        try {
-            const fb = window.FirebaseService;  // ← USAR window.FirebaseService
             if (!fb) {
                 console.error('❌ FirebaseService no está definido');
                 return;
@@ -627,7 +606,7 @@ updateMotionKPI() {
     showBrowserNotification(title, message) {
         try {
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🔔 Smart Monitor', {
+                new Notification('🔔 NexusTrack IoT', {
                     body: title + ': ' + message,
                     icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">❄️</text></svg>',
                     silent: true

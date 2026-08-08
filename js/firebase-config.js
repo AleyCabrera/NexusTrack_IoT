@@ -1,13 +1,28 @@
+/**
+ * ==========================================
+ * SMART MONITOR - FIREBASE CONFIGURATION
+ * ==========================================
+ * 
+ * Archivo: config/firebase-config.js
+ * Propósito: Configuración de Firebase
+ * 
+ * Este archivo contiene:
+ * - Credenciales de Firebase
+ * - Inicialización
+ * - Referencias a nodos de la base de datos
+ * - Estructura alineada con la base de datos existente
+ */
+
 // ========== FIREBASE CONFIGURATION ==========
 const firebaseConfig = {
-    apiKey: "AIzaSyDMPpvQT0SMzq4o8VjfKpJvqgzFA191LYA",
-    authDomain: "smart-monitor-6ec58.firebaseapp.com",
-    databaseURL: "https://smart-monitor-6ec58-default-rtdb.firebaseio.com",
-    projectId: "smart-monitor-6ec58",
-    storageBucket: "smart-monitor-6ec58.firebasestorage.app",
-    messagingSenderId: "298178902558",
-    appId: "1:298178902558:web:51f503baa9358068f74c0f",
-    measurementId: "G-Z1418C0EL7"
+    apiKey: "AIzaSyBGFpaIBPbluwKRcKgd1H9kuaawCInwpR4",
+    authDomain: "nexustrack-iot.firebaseapp.com",
+    databaseURL: "https://nexustrack-iot-default-rtdb.firebaseio.com",
+    projectId: "nexustrack-iot",
+    storageBucket: "nexustrack-iot.firebasestorage.app",
+    messagingSenderId: "579249686412",
+    appId: "1:579249686412:web:3831fc8335afd8cddcb8a9",
+    measurementId: "G-5LZCB2HGFW"
 };
 
 // ========== INICIALIZACIÓN ==========
