@@ -41,6 +41,7 @@
 
     <!-- ====== CSS PERSONALIZADO ====== -->
     <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/others.css" />
 </head>
 
 <body>
@@ -277,35 +278,469 @@
         </section>
 
         <!-- ====== OTHER SECTIONS ====== -->
+        <!-- ====== SENSORES SECTION ====== -->
         <section id="sensores" class="content-section" aria-label="Configuración de sensores">
-            <div class="placeholder-content">
-                <i class="fas fa-microchip" aria-hidden="true"></i>
-                <h2>Configuración de Sensores</h2>
-                <p>Próximamente...</p>
+            <div class="section-header">
+                <h2><i class="fas fa-microchip" aria-hidden="true"></i> Sensores</h2>
+                <p>Monitoreo detallado de todos los sensores conectados</p>
+            </div>
+        
+            <!-- Grid de Sensores -->
+            <div class="sensors-grid">
+                <!-- Sensor: Temperatura -->
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <div class="sensor-icon temperature">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="sensor-info">
+                            <h3>Temperatura</h3>
+                            <span class="sensor-status" id="sensorTempStatus">Normal</span>
+                        </div>
+                    </div>
+                    <div class="sensor-body">
+                        <div class="sensor-value">
+                            <span id="sensorTempValue">--</span>
+                            <span class="sensor-unit">°C</span>
+                        </div>
+                        <div class="sensor-range">
+                            <span>Rango: -5°C a 10°C</span>
+                        </div>
+                        <div class="sensor-mini-chart">
+                            <canvas id="sensorTempMiniChart" height="50"></canvas>
+                        </div>
+                    </div>
+                    <div class="sensor-footer">
+                        <span class="sensor-time" id="sensorTempTime">Última lectura: --</span>
+                    </div>
+                </div>
+        
+                <!-- Sensor: Humedad -->
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <div class="sensor-icon humidity">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <div class="sensor-info">
+                            <h3>Humedad</h3>
+                            <span class="sensor-status" id="sensorHumStatus">Normal</span>
+                        </div>
+                    </div>
+                    <div class="sensor-body">
+                        <div class="sensor-value">
+                            <span id="sensorHumValue">--</span>
+                            <span class="sensor-unit">%</span>
+                        </div>
+                        <div class="sensor-range">
+                            <span>Rango: 0% a 85%</span>
+                        </div>
+                        <div class="sensor-mini-chart">
+                            <canvas id="sensorHumMiniChart" height="50"></canvas>
+                        </div>
+                    </div>
+                    <div class="sensor-footer">
+                        <span class="sensor-time" id="sensorHumTime">Última lectura: --</span>
+                    </div>
+                </div>
+        
+                <!-- Sensor: Gas -->
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <div class="sensor-icon gas">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="sensor-info">
+                            <h3>Gas</h3>
+                            <span class="sensor-status" id="sensorGasStatus">Normal</span>
+                        </div>
+                    </div>
+                    <div class="sensor-body">
+                        <div class="sensor-value">
+                            <span id="sensorGasValue">--</span>
+                            <span class="sensor-unit">ppm</span>
+                        </div>
+                        <div class="sensor-range">
+                            <span>Rango: 0 a 200 ppm</span>
+                        </div>
+                        <div class="sensor-mini-chart">
+                            <canvas id="sensorGasMiniChart" height="50"></canvas>
+                        </div>
+                    </div>
+                    <div class="sensor-footer">
+                        <span class="sensor-time" id="sensorGasTime">Última lectura: --</span>
+                    </div>
+                </div>
+        
+                <!-- Sensor: Puerta -->
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <div class="sensor-icon door">
+                            <i class="fas fa-door-open"></i>
+                        </div>
+                        <div class="sensor-info">
+                            <h3>Puerta</h3>
+                            <span class="sensor-status" id="sensorDoorStatus">Cerrada</span>
+                        </div>
+                    </div>
+                    <div class="sensor-body">
+                        <div class="sensor-value" id="sensorDoorValue">
+                            <i class="fas fa-check-circle" style="color:var(--status-safe);"></i> Cerrada
+                        </div>
+                        <div class="sensor-range">
+                            <span>Estado: <span id="sensorDoorText">Cerrada</span></span>
+                        </div>
+                        <div class="sensor-door-timeline">
+                            <div class="door-timeline-bar" id="doorTimelineBar">
+                                <div class="door-timeline-fill" id="doorTimelineFill" style="width: 0%;"></div>
+                            </div>
+                            <span class="door-timeline-label" id="doorTimelineLabel">Cerrada</span>
+                        </div>
+                    </div>
+                    <div class="sensor-footer">
+                        <span class="sensor-time" id="sensorDoorTime">Última lectura: --</span>
+                    </div>
+                </div>
+        
+                <!-- Sensor: Voltaje -->
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <div class="sensor-icon voltage">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="sensor-info">
+                            <h3>Voltaje</h3>
+                            <span class="sensor-status" id="sensorVoltStatus">Normal</span>
+                        </div>
+                    </div>
+                    <div class="sensor-body">
+                        <div class="sensor-value">
+                            <span id="sensorVoltValue">--</span>
+                            <span class="sensor-unit">V</span>
+                        </div>
+                        <div class="sensor-range">
+                            <span>Rango: 190V a 240V</span>
+                        </div>
+                        <div class="sensor-mini-chart">
+                            <canvas id="sensorVoltMiniChart" height="50"></canvas>
+                        </div>
+                    </div>
+                    <div class="sensor-footer">
+                        <span class="sensor-time" id="sensorVoltTime">Última lectura: --</span>
+                    </div>
+                </div>
+        
+                <!-- Sensor: Energía -->
+                <div class="sensor-card">
+                    <div class="sensor-header">
+                        <div class="sensor-icon power">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div class="sensor-info">
+                            <h3>Energía</h3>
+                            <span class="sensor-status" id="sensorEnergyStatus">Normal</span>
+                        </div>
+                    </div>
+                    <div class="sensor-body">
+                        <div class="sensor-value">
+                            <span id="sensorEnergyValue">--</span>
+                            <span class="sensor-unit">kWh</span>
+                        </div>
+                        <div class="sensor-range">
+                            <span>Consumo acumulado</span>
+                        </div>
+                        <div class="sensor-energy-stats">
+                            <div class="energy-stat">
+                                <span>Potencia:</span>
+                                <strong id="sensorPowerValue">-- W</strong>
+                            </div>
+                            <div class="energy-stat">
+                                <span>Corriente:</span>
+                                <strong id="sensorCurrentValue">-- A</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sensor-footer">
+                        <span class="sensor-time" id="sensorEnergyTime">Última lectura: --</span>
+                    </div>
+                </div>
             </div>
         </section>
 
+        <!-- ====== ALERTAS SECTION ====== -->
         <section id="alertas" class="content-section" aria-label="Centro de alertas">
-            <div class="placeholder-content">
-                <i class="fas fa-bell" aria-hidden="true"></i>
-                <h2>Centro de Alertas</h2>
-                <p>Próximamente...</p>
+            <div class="section-header">
+                <h2><i class="fas fa-bell" aria-hidden="true"></i> Centro de Alertas</h2>
+                <div class="alert-actions">
+                    <button class="btn btn-outline" id="markAllRead">
+                        <i class="fas fa-check-double"></i> Marcar todas como leídas
+                    </button>
+                    <button class="btn btn-danger" id="clearAllAlerts">
+                        <i class="fas fa-trash"></i> Limpiar todas
+                    </button>
+                    <button class="btn btn-primary" id="exportAlerts">
+                        <i class="fas fa-download"></i> Exportar
+                    </button>
+                </div>
+            </div>
+        
+            <!-- Filtros -->
+            <div class="alert-filters">
+                <button class="alert-filter-btn active" data-filter="all">Todas</button>
+                <button class="alert-filter-btn" data-filter="unread">No leídas</button>
+                <button class="alert-filter-btn" data-filter="danger">Críticas</button>
+                <button class="alert-filter-btn" data-filter="warning">Advertencias</button>
+                <button class="alert-filter-btn" data-filter="info">Información</button>
+            </div>
+        
+            <!-- Lista de Alertas -->
+            <div class="alert-list-container">
+                <div id="alertList" class="alert-list">
+                    <div class="alert-placeholder">
+                        <i class="fas fa-check-circle"></i>
+                        <p>No hay alertas para mostrar</p>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- Paginación -->
+            <div class="alert-pagination">
+                <span>Mostrando <span id="alertCount">0</span> alertas</span>
             </div>
         </section>
 
+        <!-- ====== HISTÓRICO SECTION ====== -->
         <section id="historico" class="content-section" aria-label="Histórico de datos">
-            <div class="placeholder-content">
-                <i class="fas fa-history" aria-hidden="true"></i>
-                <h2>Histórico de Datos</h2>
-                <p>Próximamente...</p>
+            <div class="section-header">
+                <h2><i class="fas fa-history" aria-hidden="true"></i> Histórico de Datos</h2>
+                <div class="history-controls">
+                    <select id="historyPeriod" class="history-select">
+                        <option value="10">Últimos 10</option>
+                        <option value="30" selected>Últimos 30</option>
+                        <option value="50">Últimos 50</option>
+                        <option value="100">Últimos 100</option>
+                    </select>
+                    <button class="btn btn-primary" id="refreshHistory">
+                        <i class="fas fa-sync"></i> Actualizar
+                    </button>
+                    <button class="btn btn-outline" id="exportHistory">
+                        <i class="fas fa-file-export"></i> Exportar CSV
+                    </button>
+                </div>
+            </div>
+        
+            <!-- Gráficos Históricos -->
+            <div class="history-charts">
+                <div class="history-chart-card">
+                    <h3><i class="fas fa-chart-line" style="color:var(--status-danger);"></i> Temperatura</h3>
+                    <div class="chart-container" style="height:200px;">
+                        <canvas id="historyTempChart"></canvas>
+                    </div>
+                </div>
+                <div class="history-chart-card">
+                    <h3><i class="fas fa-chart-line" style="color:var(--status-info);"></i> Humedad</h3>
+                    <div class="chart-container" style="height:200px;">
+                        <canvas id="historyHumChart"></canvas>
+                    </div>
+                </div>
+                <div class="history-chart-card">
+                    <h3><i class="fas fa-chart-line" style="color:var(--status-warning);"></i> Gas</h3>
+                    <div class="chart-container" style="height:200px;">
+                        <canvas id="historyGasChart"></canvas>
+                    </div>
+                </div>
+                <div class="history-chart-card">
+                    <h3><i class="fas fa-chart-line" style="color:var(--primary);"></i> Voltaje</h3>
+                    <div class="chart-container" style="height:200px;">
+                        <canvas id="historyVoltChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        
+            <!-- Tabla de Datos -->
+            <div class="history-table-container">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha/Hora</th>
+                            <th>Temperatura (°C)</th>
+                            <th>Humedad (%)</th>
+                            <th>Gas (ppm)</th>
+                            <th>Puerta</th>
+                            <th>Voltaje (V)</th>
+                            <th>Corriente (A)</th>
+                            <th>Potencia (W)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr>
+                            <td colspan="8" class="text-center">Cargando datos...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
+        <!-- ====== CONFIGURACIÓN SECTION ====== -->
         <section id="configuracion" class="content-section" aria-label="Configuración del sistema">
-            <div class="placeholder-content">
-                <i class="fas fa-cog" aria-hidden="true"></i>
-                <h2>Configuración del Sistema</h2>
-                <p>Próximamente...</p>
+            <div class="section-header">
+                <h2><i class="fas fa-cog" aria-hidden="true"></i> Configuración del Sistema</h2>
+                <p>Configura los umbrales de alerta y preferencias del sistema</p>
+            </div>
+        
+            <div class="config-container">
+                <!-- Configuración de Sensores -->
+                <div class="config-panel">
+                    <h3><i class="fas fa-sliders-h"></i> Umbrales de Sensores</h3>
+                    <form id="configForm" class="config-form">
+                        <div class="config-group">
+                            <label>🌡️ Temperatura</label>
+                            <div class="config-row">
+                                <div class="config-field">
+                                    <span>Mínimo</span>
+                                    <input type="number" id="tempMin" value="-5" step="0.5">
+                                    <span>°C</span>
+                                </div>
+                                <div class="config-field">
+                                    <span>Máximo</span>
+                                    <input type="number" id="tempMax" value="10" step="0.5">
+                                    <span>°C</span>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div class="config-group">
+                            <label>💧 Humedad</label>
+                            <div class="config-row">
+                                <div class="config-field">
+                                    <span>Máximo</span>
+                                    <input type="number" id="humMax" value="85" step="1">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div class="config-group">
+                            <label>🔥 Gas</label>
+                            <div class="config-row">
+                                <div class="config-field">
+                                    <span>Máximo</span>
+                                    <input type="number" id="gasMax" value="200" step="10">
+                                    <span>ppm</span>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div class="config-group">
+                            <label>🚪 Puerta</label>
+                            <div class="config-row">
+                                <div class="config-field">
+                                    <span>Tiempo máximo abierta</span>
+                                    <input type="number" id="doorMaxOpenTime" value="300" step="30">
+                                    <span>segundos</span>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div class="config-group">
+                            <label>⚡ Voltaje</label>
+                            <div class="config-row">
+                                <div class="config-field">
+                                    <span>Mínimo</span>
+                                    <input type="number" id="voltMin" value="190" step="1">
+                                    <span>V</span>
+                                </div>
+                                <div class="config-field">
+                                    <span>Máximo</span>
+                                    <input type="number" id="voltMax" value="240" step="1">
+                                    <span>V</span>
+                                </div>
+                            </div>
+                        </div>
+        
+                        <div class="config-group">
+                            <label>🔒 Horario de Seguridad</label>
+                            <div class="config-row">
+                                <div class="config-field">
+                                    <span>Inicio</span>
+                                    <input type="time" id="secStart" value="22:00">
+                                </div>
+                                <div class="config-field">
+                                    <span>Fin</span>
+                                    <input type="time" id="secEnd" value="06:00">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+        
+                <!-- ====== CONFIGURACIÓN DE ALERTAS ====== -->
+                <div class="config-panel">
+                    <h3><i class="fas fa-bell"></i> Configuración de Alertas</h3>
+                
+                    <div class="config-group">
+                        <label>Notificaciones</label>
+                        <div class="config-toggle-group">
+                
+                            <!-- Toggle 1: Sonido -->
+                            <div class="toggle-item">
+                                <div class="toggle-left">
+                                    <i class="fas fa-volume-up toggle-icon"></i>
+                                    <span class="toggle-label">Sonido</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="soundAlert" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                
+                            <!-- Toggle 2: Push -->
+                            <div class="toggle-item">
+                                <div class="toggle-left">
+                                    <i class="fas fa-bell toggle-icon"></i>
+                                    <span class="toggle-label">Notificaciones Push</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="pushAlert" checked>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                
+                            <!-- Toggle 3: Email -->
+                            <div class="toggle-item">
+                                <div class="toggle-left">
+                                    <i class="fas fa-envelope toggle-icon"></i>
+                                    <span class="toggle-label">Email</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="emailAlert">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                
+                        </div>
+                    </div>
+                
+                    <div class="config-info">
+                        <p><i class="fas fa-info-circle"></i> Las notificaciones se activarán cuando se detecten alertas críticas.</p>
+                    </div>
+                </div>
+        
+                <!-- Acciones -->
+                <div class="config-actions">
+                    <button class="btn btn-primary" id="saveConfig">
+                        <i class="fas fa-save"></i> Guardar Configuración
+                    </button>
+                    <button class="btn btn-outline" id="resetConfig">
+                        <i class="fas fa-undo"></i> Restaurar Defaults
+                    </button>
+                    <button class="btn btn-outline" id="loadConfig">
+                        <i class="fas fa-cloud-download-alt"></i> Cargar desde Firebase
+                    </button>
+                </div>
+        
+                <div class="config-status">
+                    <p id="configStatus">✅ Configuración actualizada</p>
+                </div>
             </div>
         </section>
     </main>
@@ -331,6 +766,7 @@
     <script src="js/dashboard.js"></script>
     <script src="js/charts.js"></script>
     <script src="js/alerts.js"></script>
+    <script src="js/modules.js"></script>
 </body>
 
 </html>
