@@ -1,16 +1,8 @@
 /**
  * ==========================================
- * SMART MONITOR - FIREBASE CONFIGURATION
+ * NEXUS TRACK IoT - FIREBASE CONFIGURATION
+ * VERSIÓN CORREGIDA Y MEJORADA
  * ==========================================
- * 
- * Archivo: config/firebase-config.js
- * Propósito: Configuración de Firebase
- * 
- * Este archivo contiene:
- * - Credenciales de Firebase
- * - Inicialización
- * - Referencias a nodos de la base de datos
- * - Estructura alineada con la base de datos existente
  */
 
 // ========== FIREBASE CONFIGURATION ==========
@@ -25,10 +17,14 @@ const firebaseConfig = {
     measurementId: "G-5LZCB2HGFW"
 };
 
+// ========== CONSTANTES ==========
+const DEVICE_ID = "esp32_001";
+const MAX_RETRIES = 3;
+const CACHE_TIMEOUT = 60000; // 1 minuto
+
 // ========== INICIALIZACIÓN ==========
 let firebaseInitialized = false;
 let retryCount = 0;
-const maxRetries = 3;
 
 try {
     if (typeof firebase === 'undefined' || !firebase.initializeApp) {
@@ -47,37 +43,29 @@ try {
 // ========== REFERENCIAS ==========
 const database = firebaseInitialized ? firebase.database() : null;
 
-// ✅ CORREGIDO: Referencias correctas a la estructura de datos
-const sensorsRef = database ? database.ref('sensors/esp32_001/live') : null;
-const alertsRef = database ? database.ref('alerts/esp32_001') : null;
-const historyRef = database ? database.ref('history') : null;
-const devicesRef = database ? database.ref('devices/esp32_001') : null;
-const configRef = database ? database.ref('configuration/esp32_001') : null;
+// ✅ REFERENCIAS CORRECTAS CON DEVICE_ID
+const sensorsRef = database ? database.ref(`sensors/${DEVICE_ID}/live`) : null;
+const alertsRef = database ? database.ref(`alerts/${DEVICE_ID}`) : null;
+const historyRef = database ? database.ref(`history/${DEVICE_ID}`) : null;
+const devicesRef = database ? database.ref(`devices/${DEVICE_ID}`) : null;
+const configRef = database ? database.ref(`configuration/${DEVICE_ID}`) : null;
 const connectionRef = database ? database.ref('.info/connected') : null;
 
 console.log('📡 Referencias Firebase configuradas:');
-console.log('  - sensorsRef:', sensorsRef ? '✅' : '❌');
-console.log('  - alertsRef:', alertsRef ? '✅' : '❌');
-console.log('  - historyRef:', historyRef ? '✅' : '❌');
-console.log('  - devicesRef:', devicesRef ? '✅' : '❌');
-console.log('  - configRef:', configRef ? '✅' : '❌');
+console.log(`  - sensorsRef: ${sensorsRef ? '✅' : '❌'} (sensors/${DEVICE_ID}/live)`);
+console.log(`  - alertsRef: ${alertsRef ? '✅' : '❌'} (alerts/${DEVICE_ID})`);
+console.log(`  - historyRef: ${historyRef ? '✅' : '❌'} (history/${DEVICE_ID})`);
+console.log(`  - devicesRef: ${devicesRef ? '✅' : '❌'} (devices/${DEVICE_ID})`);
+console.log(`  - configRef: ${configRef ? '✅' : '❌'} (configuration/${DEVICE_ID})`);
 
-// ========== CACHE LOCAL ==========
+// ============================================
+// SISTEMA DE CACHE
+// ============================================
 class FirebaseCache {
     constructor() {
         this.cache = {};
-        this.cacheTimeout = 60000;
+        this.cacheTimeout = CACHE_TIMEOUT;
         this.pendingWrites = [];
-        this.isOnline = navigator.onLine;
-        
-        window.addEventListener('online', () => {
-            this.isOnline = true;
-            this.processPendingWrites();
-        });
-        
-        window.addEventListener('offline', () => {
-            this.isOnline = false;
-        });
     }
     
     get(key) {
@@ -99,6 +87,7 @@ class FirebaseCache {
     
     clear() {
         this.cache = {};
+        this.pendingWrites = [];
     }
     
     addPendingWrite(path, data) {
@@ -106,17 +95,8 @@ class FirebaseCache {
             path,
             data,
             timestamp: Date.now(),
-            id: Date.now() + Math.random()
+            id: Date.now() + Math.random().toString(36).substr(2, 9)
         });
-        this.savePendingWrites();
-    }
-    
-    getPendingWrites() {
-        return this.pendingWrites;
-    }
-    
-    removePendingWrite(id) {
-        this.pendingWrites = this.pendingWrites.filter(w => w.id !== id);
         this.savePendingWrites();
     }
     
@@ -139,36 +119,13 @@ class FirebaseCache {
             console.warn('⚠️ No se pudieron cargar escrituras pendientes:', error);
         }
     }
-    
-    async processPendingWrites() {
-        if (!this.isOnline || this.pendingWrites.length === 0) return;
-        
-        console.log(`📤 Procesando ${this.pendingWrites.length} escrituras pendientes...`);
-        
-        const writes = [...this.pendingWrites];
-        let successCount = 0;
-        
-        for (const write of writes) {
-            try {
-                await FirebaseService.setData(write.path, write.data);
-                this.removePendingWrite(write.id);
-                successCount++;
-            } catch (error) {
-                console.warn(`⚠️ Error procesando escritura ${write.id}:`, error);
-            }
-        }
-        
-        if (successCount > 0) {
-            console.log(`✅ ${successCount} escrituras pendientes procesadas`);
-        }
-    }
 }
 
-const firebaseCache = new FirebaseCache();
-firebaseCache.loadPendingWrites();
-
-// ========== SERVICIO DE FIREBASE ==========
+// ============================================
+// SERVICIO DE FIREBASE
+// ============================================
 const FirebaseService = {
+    // ========== PROPIEDADES ==========
     database,
     sensorsRef,
     alertsRef,
@@ -178,8 +135,13 @@ const FirebaseService = {
     connectionRef,
     isInitialized: firebaseInitialized,
     isConnected: false,
+    deviceId: DEVICE_ID,
+    cache: new FirebaseCache(),
+    listeners: [],
     
-    // ========== CONEXIÓN ==========
+    // ============================================
+    // CONEXIÓN
+    // ============================================
     checkConnection() {
         return new Promise((resolve) => {
             if (!this.connectionRef) {
@@ -191,6 +153,7 @@ const FirebaseService = {
                 .then(snapshot => {
                     const connected = snapshot.val() === true;
                     this.isConnected = connected;
+                    console.log(`📡 Conexión: ${connected ? '✅ Conectado' : '❌ Desconectado'}`);
                     resolve(connected);
                 })
                 .catch(() => {
@@ -212,6 +175,7 @@ const FirebaseService = {
             if (callback) callback(connected);
         });
         
+        this.listeners.push(listener);
         return listener;
     },
     
@@ -219,7 +183,7 @@ const FirebaseService = {
         console.log('🔄 Intentando reconectar a Firebase...');
         retryCount = 0;
         
-        while (retryCount < maxRetries) {
+        while (retryCount < MAX_RETRIES) {
             const connected = await this.checkConnection();
             if (connected) {
                 console.log('✅ Reconectado a Firebase');
@@ -227,7 +191,7 @@ const FirebaseService = {
             }
             
             retryCount++;
-            console.log(`⏳ Intento ${retryCount}/${maxRetries} - Esperando ${retryCount * 2}s...`);
+            console.log(`⏳ Intento ${retryCount}/${MAX_RETRIES} - Esperando ${retryCount * 2}s...`);
             await new Promise(resolve => setTimeout(resolve, retryCount * 2000));
         }
         
@@ -235,51 +199,25 @@ const FirebaseService = {
         return false;
     },
     
-    // ========== LECTURA DE DATOS ==========
-    
-    // ✅ NUEVO: Obtener datos completos del dispositivo
-    getDeviceData(deviceId = 'esp32_001') {
+    // ============================================
+    // SENSORES
+    // ============================================
+    getSensorData(deviceId = DEVICE_ID, useCache = true) {
         return new Promise((resolve, reject) => {
             if (!this.database) {
                 reject(new Error('Firebase no inicializado'));
                 return;
             }
             
-            const deviceRef = this.database.ref(`devices/${deviceId}`);
-            deviceRef.once('value')
-                .then(snapshot => {
-                    const data = snapshot.val();
-                    if (data) {
-                        firebaseCache.set('device', data);
-                        resolve(data);
-                    } else {
-                        resolve(null);
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Error obteniendo datos del dispositivo:', error);
-                    reject(error);
-                });
-        });
-    },
-    
-    // ✅ CORREGIDO: Obtener datos de sensores
-    getSensorData(deviceId = 'esp32_001', useCache = true) {
-        return new Promise((resolve, reject) => {
-            if (!this.sensorsRef) {
-                reject(new Error('Firebase no inicializado'));
-                return;
-            }
-            
+            const cacheKey = `sensors_${deviceId}`;
             if (useCache) {
-                const cached = firebaseCache.get('sensors');
+                const cached = this.cache.get(cacheKey);
                 if (cached) {
                     resolve(cached);
                     return;
                 }
             }
             
-            // ✅ CORREGIDO: Usar la ruta correcta
             const sensorPath = `sensors/${deviceId}/live`;
             const ref = this.database.ref(sensorPath);
             
@@ -289,17 +227,13 @@ const FirebaseService = {
                     if (data) {
                         const validated = this.validateSensorData(data);
                         if (validated) {
-                            firebaseCache.set('sensors', validated);
+                            this.cache.set(cacheKey, validated);
                             resolve(validated);
                         } else {
-                            resolve(null);
+                            resolve(data);
                         }
                     } else {
-                        // ✅ Si no hay datos reales, usar datos de prueba
-                        console.warn('⚠️ No hay datos de sensores en Firebase, usando datos de prueba');
-                        const mockData = this.generateMockData();
-                        firebaseCache.set('sensors', mockData);
-                        resolve(mockData);
+                        resolve(null);
                     }
                 })
                 .catch(error => {
@@ -309,26 +243,22 @@ const FirebaseService = {
         });
     },
     
-    // ✅ CORREGIDO: Escuchar datos de sensores en tiempo real
-    onSensorData(callback, deviceId = 'esp32_001', options = {}) {
+    onSensorData(callback, deviceId = DEVICE_ID, options = {}) {
         if (!this.database) {
             console.error('❌ Firebase no inicializado');
             return null;
         }
         
-        const { useCache = true, errorHandler = null } = options;
-        
-        // Si hay cache, llamar inmediatamente
-        if (useCache) {
-            const cached = firebaseCache.get('sensors');
-            if (cached) {
-                callback(cached);
-            }
-        }
-        
-        // ✅ CORREGIDO: Escuchar en la ruta correcta
         const sensorPath = `sensors/${deviceId}/live`;
+        console.log(`📡 Escuchando datos en: ${sensorPath}`);
         const ref = this.database.ref(sensorPath);
+        
+        // Enviar datos en cache si existen
+        const cacheKey = `sensors_${deviceId}`;
+        const cached = this.cache.get(cacheKey);
+        if (cached && options.useCache !== false) {
+            callback(cached);
+        }
         
         const listener = ref.on('value', (snapshot) => {
             try {
@@ -336,24 +266,25 @@ const FirebaseService = {
                 if (data) {
                     const validated = this.validateSensorData(data);
                     if (validated) {
-                        firebaseCache.set('sensors', validated);
+                        this.cache.set(cacheKey, validated);
                         callback(validated);
+                    } else {
+                        this.cache.set(cacheKey, data);
+                        callback(data);
                     }
                 } else {
-                    // ✅ Si no hay datos, generar mock
-                    const mockData = this.generateMockData();
-                    firebaseCache.set('sensors', mockData);
-                    callback(mockData);
+                    callback(null);
                 }
             } catch (error) {
                 console.error('❌ Error procesando datos de sensores:', error);
-                if (errorHandler) errorHandler(error);
+                if (options.errorHandler) options.errorHandler(error);
             }
         }, (error) => {
             console.error('❌ Error en listener de sensores:', error);
-            if (errorHandler) errorHandler(error);
+            if (options.errorHandler) options.errorHandler(error);
         });
         
+        this.listeners.push(listener);
         return listener;
     },
     
@@ -362,6 +293,7 @@ const FirebaseService = {
         
         const validated = {};
         
+        // Temperatura
         if (data.temperature !== undefined && data.temperature !== null) {
             const temp = parseFloat(data.temperature);
             if (!isNaN(temp) && temp >= -20 && temp <= 60) {
@@ -369,6 +301,7 @@ const FirebaseService = {
             }
         }
         
+        // Humedad
         if (data.humidity !== undefined && data.humidity !== null) {
             const hum = parseFloat(data.humidity);
             if (!isNaN(hum) && hum >= 0 && hum <= 100) {
@@ -376,6 +309,7 @@ const FirebaseService = {
             }
         }
         
+        // Gas
         if (data.gas !== undefined && data.gas !== null) {
             const gas = parseFloat(data.gas);
             if (!isNaN(gas) && gas >= 0) {
@@ -383,83 +317,71 @@ const FirebaseService = {
             }
         }
         
+        // Puerta
         if (data.door !== undefined && data.door !== null) {
             validated.door = data.door === 1 || data.door === true ? 1 : 0;
         }
         
-        validated.timestamp = data.timestamp || Date.now();
-        
-        // ✅ Si no hay valores válidos, generar mock
-        if (Object.keys(validated).length <= 1) {
-            return this.generateMockData();
+        // Voltaje
+        if (data.voltage !== undefined && data.voltage !== null) {
+            const volt = parseFloat(data.voltage);
+            if (!isNaN(volt)) {
+                validated.voltage = volt;
+            }
         }
         
-        return validated;
-    },
-    
-    // ✅ NUEVO: Generar datos de prueba
-    generateMockData() {
-        const now = Date.now();
-        return {
-            temperature: 2 + Math.random() * 6,
-            humidity: 60 + Math.random() * 20,
-            gas: 50 + Math.random() * 150,
-            door: Math.random() > 0.7 ? 1 : 0,
-            timestamp: now
-        };
-    },
-    
-    // ========== ESCRITURA DE DATOS ==========
-    
-    setSensorData(data) {
-        return new Promise((resolve, reject) => {
-            if (!this.sensorsRef) {
-                reject(new Error('Firebase no inicializado'));
-                return;
+        // Corriente
+        if (data.current !== undefined && data.current !== null) {
+            const current = parseFloat(data.current);
+            if (!isNaN(current)) {
+                validated.current = current;
             }
-            
-            try {
-                const validated = this.validateSensorData(data);
-                if (!validated) {
-                    reject(new Error('Datos de sensores inválidos'));
-                    return;
-                }
-                
-                if (!validated.timestamp) {
-                    validated.timestamp = Date.now();
-                }
-                
-                // ✅ CORREGIDO: Usar update en lugar de set para no sobrescribir
-                this.sensorsRef.update(validated)
-                    .then(() => {
-                        firebaseCache.set('sensors', validated);
-                        resolve({ success: true, data: validated });
-                    })
-                    .catch(error => {
-                        console.error('❌ Error guardando datos:', error);
-                        reject(error);
-                    });
-                    
-            } catch (error) {
-                console.error('❌ Error validando datos:', error);
-                reject(error);
+        }
+        
+        // Potencia
+        if (data.power !== undefined && data.power !== null) {
+            const power = parseFloat(data.power);
+            if (!isNaN(power)) {
+                validated.power = power;
             }
-        });
+        }
+        
+        // Energía
+        if (data.energy !== undefined && data.energy !== null) {
+            const energy = parseFloat(data.energy);
+            if (!isNaN(energy)) {
+                validated.energy = energy;
+            }
+        }
+        
+        // Movimiento
+        if (data.motion !== undefined && data.motion !== null) {
+            validated.motion = data.motion === 1 || data.motion === true ? 1 : 0;
+        }
+        
+        validated.timestamp = data.timestamp || Date.now();
+        
+        // Verificar que hay al menos un valor
+        const hasValue = Object.keys(validated).some(key => 
+            key !== 'timestamp' && validated[key] !== null && validated[key] !== undefined
+        );
+        
+        return hasValue ? validated : null;
     },
     
-    // ========== ALERTAS ==========
-    
-    onAlerts(callback, deviceId = 'esp32_001', options = {}) {
+    // ============================================
+    // ALERTAS
+    // ============================================
+    onAlerts(callback, deviceId = DEVICE_ID, options = {}) {
         if (!this.database) {
             console.error('❌ Firebase no inicializado');
             return null;
         }
         
-        const { limit = 10, errorHandler = null } = options;
-        
-        // ✅ CORREGIDO: Escuchar en la ruta correcta
         const alertPath = `alerts/${deviceId}`;
+        console.log(`📡 Escuchando alertas en: ${alertPath}`);
         const ref = this.database.ref(alertPath);
+        const limit = options.limit || 10;
         const query = ref.orderByKey().limitToLast(limit);
         
         const listener = query.on('value', (snapshot) => {
@@ -477,17 +399,18 @@ const FirebaseService = {
                 callback(alerts.reverse());
             } catch (error) {
                 console.error('❌ Error procesando alertas:', error);
-                if (errorHandler) errorHandler(error);
+                if (options.errorHandler) options.errorHandler(error);
             }
         }, (error) => {
             console.error('❌ Error en listener de alertas:', error);
-            if (errorHandler) errorHandler(error);
+            if (options.errorHandler) options.errorHandler(error);
         });
         
+        this.listeners.push(listener);
         return listener;
     },
     
-    saveAlert(alertData, deviceId = 'esp32_001') {
+    saveAlert(alertData, deviceId = DEVICE_ID) {
         return new Promise((resolve, reject) => {
             if (!this.database) {
                 reject(new Error('Firebase no inicializado'));
@@ -500,7 +423,9 @@ const FirebaseService = {
                     title: this.sanitizeString(alertData.title || 'Alerta'),
                     message: this.sanitizeString(alertData.message || ''),
                     timestamp: Date.now(),
-                    read: false
+                    read: false,
+                    acknowledged: false,
+                    category: alertData.category || 'general'
                 };
                 
                 const alertPath = `alerts/${deviceId}`;
@@ -535,22 +460,33 @@ const FirebaseService = {
         return div.innerHTML;
     },
     
-    // ========== HISTÓRICO ==========
+    // ============================================
+    // ✅ HISTÓRICO - CORREGIDO Y MEJORADO
+    // ============================================
     
-    getHistory(limit = 20) {
+    /**
+     * Obtiene el histórico de un dispositivo
+     * @param {string} deviceId - ID del dispositivo (default: esp32_001)
+     * @param {number} limit - Número máximo de registros (default: 20)
+     * @returns {Promise<Array>} - Array de registros históricos
+     */
+    getHistory(deviceId = DEVICE_ID, limit = 20) {
         return new Promise((resolve, reject) => {
             if (!this.database) {
                 reject(new Error('Firebase no inicializado'));
                 return;
             }
             
-            const ref = this.database.ref('history');
+            const path = `history/${deviceId}`;
+            console.log(`📊 Obteniendo histórico de: ${path} (límite: ${limit})`);
+            const ref = this.database.ref(path);
             const query = ref.orderByKey().limitToLast(limit);
             
             query.once('value')
                 .then(snapshot => {
                     const data = snapshot.val();
                     if (!data) {
+                        console.log('📊 No hay datos históricos');
                         resolve([]);
                         return;
                     }
@@ -560,7 +496,10 @@ const FirebaseService = {
                         ...data[key]
                     }));
                     
-                    resolve(entries.sort((a, b) => b.timestamp - a.timestamp));
+                    // Ordenar por timestamp descendente (más reciente primero)
+                    const sorted = entries.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    console.log(`📊 ${sorted.length} registros históricos obtenidos`);
+                    resolve(sorted);
                 })
                 .catch(error => {
                     console.error('❌ Error obteniendo histórico:', error);
@@ -569,8 +508,80 @@ const FirebaseService = {
         });
     },
     
-    // ========== UTILIDADES ==========
+    /**
+     * Guarda un registro en el histórico
+     * @param {Object} data - Datos a guardar
+     * @param {string} deviceId - ID del dispositivo (default: esp32_001)
+     * @returns {Promise<Object>} - Resultado de la operación
+     */
+    saveHistory(data, deviceId = DEVICE_ID) {
+        return new Promise((resolve, reject) => {
+            if (!this.database) {
+                reject(new Error('Firebase no inicializado'));
+                return;
+            }
+            
+            const historyPath = `history/${deviceId}`;
+            const ref = this.database.ref(historyPath);
+            const newRef = ref.push();
+            
+            const entry = {
+                temperature: data.temperature !== undefined ? data.temperature : 0,
+                humidity: data.humidity !== undefined ? data.humidity : 0,
+                gas: data.gas !== undefined ? data.gas : 0,
+                door: data.door !== undefined ? data.door : 0,
+                voltage: data.voltage !== undefined ? data.voltage : 0,
+                current: data.current !== undefined ? data.current : 0,
+                power: data.power !== undefined ? data.power : 0,
+                energy: data.energy !== undefined ? data.energy : 0,
+                timestamp: data.timestamp || Date.now()
+            };
+            
+            newRef.set(entry)
+                .then(() => {
+                    resolve({ success: true, id: newRef.key });
+                })
+                .catch(error => {
+                    console.error('❌ Error guardando histórico:', error);
+                    reject(error);
+                });
+        });
+    },
     
+    // ============================================
+    // CONFIGURACIÓN
+    // ============================================
+    
+    /**
+     * Obtiene datos de cualquier ruta
+     * @param {string} path - Ruta en Firebase
+     * @returns {Promise<any>} - Datos obtenidos
+     */
+    getData(path) {
+        return new Promise((resolve, reject) => {
+            if (!this.database) {
+                reject(new Error('Firebase no inicializado'));
+                return;
+            }
+            
+            const ref = this.database.ref(path);
+            ref.once('value')
+                .then(snapshot => {
+                    resolve(snapshot.val());
+                })
+                .catch(error => {
+                    console.error(`❌ Error obteniendo ${path}:`, error);
+                    reject(error);
+                });
+        });
+    },
+    
+    /**
+     * Guarda datos en cualquier ruta
+     * @param {string} path - Ruta en Firebase
+     * @param {any} data - Datos a guardar
+     * @returns {Promise<Object>} - Resultado de la operación
+     */
     setData(path, data) {
         return new Promise((resolve, reject) => {
             if (!this.database) {
@@ -588,26 +599,59 @@ const FirebaseService = {
         });
     },
     
+    /**
+     * Actualiza datos en cualquier ruta
+     * @param {string} path - Ruta en Firebase
+     * @param {any} data - Datos a actualizar
+     * @returns {Promise<Object>} - Resultado de la operación
+     */
+    updateData(path, data) {
+        return new Promise((resolve, reject) => {
+            if (!this.database) {
+                reject(new Error('Firebase no inicializado'));
+                return;
+            }
+            
+            const ref = this.database.ref(path);
+            ref.update(data)
+                .then(() => resolve({ success: true }))
+                .catch(error => {
+                    console.error(`❌ Error actualizando ${path}:`, error);
+                    reject(error);
+                });
+        });
+    },
+    
+    // ============================================
+    // UTILIDADES
+    // ============================================
     clearCache() {
-        firebaseCache.clear();
+        this.cache.clear();
+        console.log('🧹 Cache limpiado');
     },
     
     cleanup() {
-        if (this.sensorsRef) {
-            this.sensorsRef.off();
-        }
-        if (this.alertsRef) {
-            this.alertsRef.off();
-        }
-        if (this.connectionRef) {
-            this.connectionRef.off();
-        }
-        console.log('🧹 Firebase cleanup realizado');
+        console.log('🧹 Limpiando listeners de Firebase...');
+        this.listeners.forEach(listener => {
+            try {
+                if (typeof listener === 'function') listener();
+            } catch (error) {
+                // Silenciar error
+            }
+        });
+        this.listeners = [];
+        console.log('✅ Firebase cleanup realizado');
     }
 };
 
-// ========== INICIALIZACIÓN ==========
+// ============================================
+// INICIALIZACIÓN
+// ============================================
 if (firebaseInitialized) {
+    // Cargar escrituras pendientes
+    FirebaseService.cache.loadPendingWrites();
+    
+    // Verificar conexión
     FirebaseService.checkConnection().then(connected => {
         FirebaseService.isConnected = connected;
         console.log(`📡 Estado de conexión: ${connected ? '✅ Conectado' : '❌ Desconectado'}`);
@@ -619,16 +663,19 @@ if (firebaseInitialized) {
         }
     });
     
+    // Monitorear conexión
     FirebaseService.monitorConnection((connected) => {
-        if (connected && firebaseCache.pendingWrites.length > 0) {
-            firebaseCache.processPendingWrites();
-        }
+        console.log(`📡 Conexión actualizada: ${connected ? '✅ Conectado' : '❌ Desconectado'}`);
     });
 }
 
-// ========== EXPORTAR ==========
+// ============================================
+// EXPORTAR
+// ============================================
 window.FirebaseService = FirebaseService;
-window.firebaseCache = firebaseCache;
+window.DEVICE_ID = DEVICE_ID;
 
 console.log('🔥 Firebase Service actualizado correctamente');
-console.log('📊 Esperando datos de sensores...');
+console.log(`📌 Device ID: ${DEVICE_ID}`);
+console.log(`📌 History path: history/${DEVICE_ID}`);
+console.log(`📌 Cache timeout: ${CACHE_TIMEOUT/1000}s`);
