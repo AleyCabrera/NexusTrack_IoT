@@ -14,6 +14,7 @@ class ModulesManager {
         this.currentAlertFilter = 'all';
         this.debug = true;
         this.updateInterval = null;
+        this.deviceId = 'esp32_001';
         
         // Esperar a que FirebaseService esté disponible
         this.waitForFirebase();
@@ -103,6 +104,9 @@ class ModulesManager {
         // Configurar eventos de UI
         this.setupUIEvents();
         
+        // Generar histórico de prueba
+        this.generateMockHistory();
+        
         this.isInitialized = true;
         console.log('✅ Módulos inicializados con datos de prueba');
         console.warn('⚠️ Modo de prueba - Los datos no son reales');
@@ -118,7 +122,7 @@ class ModulesManager {
         
         // Intentar obtener datos actualizados
         if (typeof FirebaseService !== 'undefined' && FirebaseService.isInitialized) {
-            FirebaseService.getSensorData('esp32_001', false)
+            FirebaseService.getSensorData(this.deviceId, false)
                 .then(data => {
                     if (data) {
                         console.log('📊 Datos refrescados:', data);
@@ -220,7 +224,7 @@ class ModulesManager {
                 } else {
                     console.warn('⚠️ Datos de sensores vacíos o nulos');
                 }
-            }, 'esp32_001', {
+            }, this.deviceId, {
                 useCache: true,
                 errorHandler: (error) => {
                     console.error('❌ Error en listener de sensores:', error);
@@ -240,7 +244,7 @@ class ModulesManager {
                 console.log(`🔔 ${alerts.length} alertas recibidas`);
                 this.alertsData = alerts || [];
                 this.renderAlerts();
-            }, 'esp32_001', {
+            }, this.deviceId, {
                 errorHandler: (error) => {
                     console.error('❌ Error en listener de alertas:', error);
                 }
@@ -255,7 +259,7 @@ class ModulesManager {
     }
     
     // ============================================
-    // SENSORES UI - CORREGIDA
+    // SENSORES UI
     // ============================================
     updateSensorUI(data) {
         console.log('🔄 Actualizando UI de sensores...');
@@ -297,7 +301,6 @@ class ModulesManager {
         
         if (missing.length > 0) {
             console.warn('⚠️ Elementos faltantes en el DOM:', missing);
-            console.warn('   💡 Asegúrate de que el HTML tenga estos IDs');
         }
         
         // ============================================
@@ -444,7 +447,7 @@ class ModulesManager {
     }
     
     // ============================================
-    // MINI CHART - CORREGIDO
+    // MINI CHART
     // ============================================
     updateMiniChart(canvasId, type, value) {
         const canvas = document.getElementById(canvasId);
@@ -518,7 +521,7 @@ class ModulesManager {
     }
     
     // ============================================
-    // ALERTAS - CORREGIDO
+    // ALERTAS
     // ============================================
     renderAlerts() {
         const container = document.getElementById('alertList');
@@ -599,33 +602,70 @@ class ModulesManager {
     // HISTÓRICO - CORREGIDO
     // ============================================
     async loadHistory() {
+        console.log('📊 Cargando histórico...');
+        
         try {
             if (typeof FirebaseService === 'undefined' || !FirebaseService.isInitialized) {
                 console.warn('⚠️ FirebaseService no disponible para histórico');
-                this.renderHistoryTable([]);
+                this.generateMockHistory();
                 return;
             }
             
-            const period = document.getElementById('historyPeriod')?.value || 30;
-            const data = await FirebaseService.getHistory(parseInt(period));
+            const period = parseInt(document.getElementById('historyPeriod')?.value || 30);
+            
+            // ✅ OBTENER HISTÓRICO CON DEVICE_ID
+            const data = await FirebaseService.getHistory(this.deviceId, period);
+            
+            console.log(`📊 ${data?.length || 0} registros históricos encontrados`);
             
             if (data && data.length > 0) {
+                console.log('📊 Primeros 5 registros:', data.slice(0, 5));
                 this.historyData = data;
                 this.renderHistoryTable(data);
                 this.renderHistoryCharts(data);
             } else {
-                console.warn('⚠️ No hay datos históricos');
-                this.renderHistoryTable([]);
+                console.warn('⚠️ No hay datos históricos, generando datos de prueba');
+                this.generateMockHistory();
             }
         } catch (error) {
             console.error('❌ Error cargando histórico:', error);
-            this.renderHistoryTable([]);
+            this.generateMockHistory();
         }
     }
     
+    // ============================================
+    // GENERAR DATOS DE PRUEBA PARA HISTÓRICO
+    // ============================================
+    generateMockHistory() {
+        console.log('📊 Generando datos de prueba para histórico...');
+        
+        const mockData = [];
+        const now = Date.now();
+        
+        for (let i = 0; i < 30; i++) {
+            const timestamp = now - (30 - i) * 60000;
+            mockData.push({
+                id: `mock_${i}`,
+                temperature: 2 + Math.random() * 8,
+                humidity: 55 + Math.random() * 30,
+                gas: 50 + Math.random() * 150,
+                door: Math.random() > 0.8 ? 1 : 0,
+                voltage: 215 + Math.random() * 15,
+                current: 0.8 + Math.random() * 0.8,
+                power: 180 + Math.random() * 100,
+                timestamp: timestamp
+            });
+        }
+        
+        mockData.sort((a, b) => b.timestamp - a.timestamp);
+        
+        console.log(`📊 ${mockData.length} registros de prueba generados`);
+        this.historyData = mockData;
+        this.renderHistoryTable(mockData);
+        this.renderHistoryCharts(mockData);
+    }
+    
     loadAlerts() {
-        // Las alertas se cargan a través del listener
-        // Este método es un fallback
         if (typeof FirebaseService !== 'undefined' && FirebaseService.isInitialized) {
             FirebaseService.alertsRef?.once('value').then(snapshot => {
                 const data = snapshot.val();
@@ -643,16 +683,24 @@ class ModulesManager {
         }
     }
     
+    // ============================================
+    // RENDER HISTORICAL TABLE - CORREGIDO
+    // ============================================
     renderHistoryTable(data) {
         const tbody = document.getElementById('historyTableBody');
-        if (!tbody) return;
+        if (!tbody) {
+            console.warn('⚠️ historyTableBody no encontrado');
+            return;
+        }
         
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" class="text-center">No hay datos disponibles</td></tr>';
             return;
         }
         
-        tbody.innerHTML = data.slice(0, 100).map(entry => `
+        const displayData = data.slice(0, 100);
+        
+        tbody.innerHTML = displayData.map(entry => `
             <tr>
                 <td>${this.formatTime(entry.timestamp)}</td>
                 <td>${entry.temperature !== undefined ? entry.temperature.toFixed(1) : '--'}</td>
@@ -664,8 +712,13 @@ class ModulesManager {
                 <td>${entry.power !== undefined ? entry.power.toFixed(1) : '--'}</td>
             </tr>
         `).join('');
+        
+        console.log(`✅ Tabla de histórico actualizada con ${displayData.length} registros`);
     }
     
+    // ============================================
+    // RENDER HISTORICAL CHARTS - CORREGIDO
+    // ============================================
     renderHistoryCharts(data) {
         if (typeof Chart === 'undefined') {
             console.warn('⚠️ Chart.js no disponible');
@@ -678,12 +731,29 @@ class ModulesManager {
         }
         
         try {
-            const labels = data.map(d => this.formatShortTime(d.timestamp));
+            // ✅ Usar los últimos 50 datos para los gráficos (invertidos para mostrar más reciente a la derecha)
+            const chartData = data.slice(0, 50).reverse();
+            const labels = chartData.map(d => this.formatShortTime(d.timestamp));
             
-            this.createHistoryChart('historyTempChart', labels, data.map(d => d.temperature || 0), '#EF4444', 'Temperatura (°C)');
-            this.createHistoryChart('historyHumChart', labels, data.map(d => d.humidity || 0), '#3B82F6', 'Humedad (%)');
-            this.createHistoryChart('historyGasChart', labels, data.map(d => d.gas || 0), '#F59E0B', 'Gas (ppm)');
-            this.createHistoryChart('historyVoltChart', labels, data.map(d => d.voltage || 0), '#005F8A', 'Voltaje (V)');
+            console.log(`📊 Creando gráficos con ${chartData.length} puntos`);
+            
+            const charts = [
+                { id: 'historyTempChart', data: chartData.map(d => d.temperature || 0), color: '#EF4444', label: 'Temperatura (°C)' },
+                { id: 'historyHumChart', data: chartData.map(d => d.humidity || 0), color: '#3B82F6', label: 'Humedad (%)' },
+                { id: 'historyGasChart', data: chartData.map(d => d.gas || 0), color: '#F59E0B', label: 'Gas (ppm)' },
+                { id: 'historyVoltChart', data: chartData.map(d => d.voltage || 0), color: '#005F8A', label: 'Voltaje (V)' }
+            ];
+            
+            charts.forEach(chart => {
+                const canvas = document.getElementById(chart.id);
+                if (!canvas) {
+                    console.warn(`⚠️ Canvas ${chart.id} no encontrado`);
+                    return;
+                }
+                this.createHistoryChart(chart.id, labels, chart.data, chart.color, chart.label);
+            });
+            
+            console.log('✅ Gráficos históricos creados');
         } catch (error) {
             console.error('❌ Error creando gráficos:', error);
         }
@@ -747,20 +817,17 @@ class ModulesManager {
     }
     
     // ============================================
-    // CONFIGURACIÓN - CORREGIDO
+    // CONFIGURACIÓN
     // ============================================
     setupConfigForm() {
-        // Cargar configuración desde Firebase
         document.getElementById('loadConfig')?.addEventListener('click', () => {
             this.loadConfigFromFirebase();
         });
         
-        // Guardar configuración
         document.getElementById('saveConfig')?.addEventListener('click', () => {
             this.saveConfigToFirebase();
         });
         
-        // Resetear configuración
         document.getElementById('resetConfig')?.addEventListener('click', () => {
             this.resetConfig();
         });
@@ -773,19 +840,28 @@ class ModulesManager {
                 return;
             }
             
-            const config = await FirebaseService.getData('configuration/esp32_001');
+            const config = await FirebaseService.getData(`configuration/${this.deviceId}`);
             if (config) {
                 this.applyConfig(config);
-                document.getElementById('configStatus').textContent = '✅ Configuración cargada desde Firebase';
-                document.getElementById('configStatus').style.color = 'var(--status-safe)';
+                const statusEl = document.getElementById('configStatus');
+                if (statusEl) {
+                    statusEl.textContent = '✅ Configuración cargada desde Firebase';
+                    statusEl.style.color = 'var(--status-safe)';
+                }
             } else {
-                document.getElementById('configStatus').textContent = '⚠️ No hay configuración en Firebase';
-                document.getElementById('configStatus').style.color = 'var(--status-warning)';
+                const statusEl = document.getElementById('configStatus');
+                if (statusEl) {
+                    statusEl.textContent = '⚠️ No hay configuración en Firebase';
+                    statusEl.style.color = 'var(--status-warning)';
+                }
             }
         } catch (error) {
             console.error('❌ Error cargando configuración:', error);
-            document.getElementById('configStatus').textContent = '❌ Error cargando configuración';
-            document.getElementById('configStatus').style.color = 'var(--status-danger)';
+            const statusEl = document.getElementById('configStatus');
+            if (statusEl) {
+                statusEl.textContent = '❌ Error cargando configuración';
+                statusEl.style.color = 'var(--status-danger)';
+            }
         }
     }
     
@@ -821,14 +897,20 @@ class ModulesManager {
                 }
             };
             
-            await FirebaseService.setData('configuration/esp32_001', config);
-            document.getElementById('configStatus').textContent = '✅ Configuración guardada en Firebase';
-            document.getElementById('configStatus').style.color = 'var(--status-safe)';
+            await FirebaseService.setData(`configuration/${this.deviceId}`, config);
+            const statusEl = document.getElementById('configStatus');
+            if (statusEl) {
+                statusEl.textContent = '✅ Configuración guardada en Firebase';
+                statusEl.style.color = 'var(--status-safe)';
+            }
             
         } catch (error) {
             console.error('❌ Error guardando configuración:', error);
-            document.getElementById('configStatus').textContent = '❌ Error guardando configuración';
-            document.getElementById('configStatus').style.color = 'var(--status-danger)';
+            const statusEl = document.getElementById('configStatus');
+            if (statusEl) {
+                statusEl.textContent = '❌ Error guardando configuración';
+                statusEl.style.color = 'var(--status-danger)';
+            }
         }
     }
     
@@ -884,12 +966,15 @@ class ModulesManager {
         };
         
         this.applyConfig(defaultConfig);
-        document.getElementById('configStatus').textContent = '🔄 Configuración restaurada a valores por defecto';
-        document.getElementById('configStatus').style.color = 'var(--status-info)';
+        const statusEl = document.getElementById('configStatus');
+        if (statusEl) {
+            statusEl.textContent = '🔄 Configuración restaurada a valores por defecto';
+            statusEl.style.color = 'var(--status-info)';
+        }
     }
     
     // ============================================
-    // UI EVENTS - CORREGIDO
+    // UI EVENTS
     // ============================================
     setupUIEvents() {
         console.log('🎯 Configurando eventos de UI...');
@@ -957,7 +1042,7 @@ class ModulesManager {
         
         const headers = 'Fecha,Tipo,Título,Mensaje,Estado\n';
         const rows = this.alertsData.map(a => 
-            `${this.formatTime(a.timestamp)},${a.type},${a.title},${a.message},${a.read ? 'Leída' : 'No leída'}`
+            `${this.formatTime(a.timestamp)},${a.type},${this.escapeHtml(a.title)},${this.escapeHtml(a.message)},${a.read ? 'Leída' : 'No leída'}`
         ).join('\n');
         
         this.downloadFile('alertas.csv', headers + rows);
@@ -1041,7 +1126,6 @@ class ModulesManager {
     destroy() {
         console.log('🧹 Limpiando módulos...');
         
-        // Limpiar listeners
         if (this._sensorListener && typeof this._sensorListener === 'function') {
             try {
                 this._sensorListener();
@@ -1054,13 +1138,11 @@ class ModulesManager {
             } catch (error) {}
         }
         
-        // Limpiar intervalos
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
         }
         
-        // Destruir gráficos
         Object.keys(this.historyCharts).forEach(key => {
             try {
                 if (this.historyCharts[key] && typeof this.historyCharts[key].destroy === 'function') {
@@ -1081,7 +1163,6 @@ class ModulesManager {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('📄 DOM cargado - Inicializando módulos...');
     
-    // Evitar duplicados
     if (window.modulesManager) {
         console.warn('⚠️ modulesManager ya existe, limpiando...');
         try {
@@ -1092,7 +1173,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.modulesManager = new ModulesManager();
     
-    // Limpiar al cerrar la página
     window.addEventListener('beforeunload', () => {
         if (window.modulesManager && typeof window.modulesManager.destroy === 'function') {
             window.modulesManager.destroy();
