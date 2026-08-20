@@ -434,7 +434,7 @@ class AlertsManager {
                 return;
             }
             
-            const notification = new Notification('🔔 Smart Monitor', {
+            const notification = new Notification('🔔 NexuxTrack IoT', {
                 body: `${this.getTypeLabel(alert.type)} ${alert.title}: ${alert.message}`,
                 icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">❄️</text></svg>',
                 tag: alert.id,
@@ -508,9 +508,9 @@ class AlertsManager {
         const title = document.querySelector('title');
         if (title) {
             if (this.unreadCount > 0) {
-                title.textContent = `(${this.unreadCount}) Smart Monitor - Sistema IoT`;
+                title.textContent = `(${this.unreadCount}) NexusTrack IoT - Sistema IoT`;
             } else {
-                title.textContent = 'SmartFood Monitor - Sistema IoT';
+                title.textContent = 'NexusTrack IoT - Sistema IoT';
             }
         }
     }
@@ -519,7 +519,7 @@ class AlertsManager {
     
     saveLocalAlerts() {
         try {
-            localStorage.setItem('smartfood_alerts', JSON.stringify({
+            localStorage.setItem('nexustrack_alerts', JSON.stringify({
                 alerts: this.alerts,
                 timestamp: Date.now()
             }));
@@ -530,7 +530,7 @@ class AlertsManager {
     
     loadLocalAlerts() {
         try {
-            const stored = localStorage.getItem('smartfood_alerts');
+            const stored = localStorage.getItem('nexustrack_alerts');
             if (stored) {
                 const data = JSON.parse(stored);
                 if (data.alerts && Array.isArray(data.alerts) && data.alerts.length > 0) {

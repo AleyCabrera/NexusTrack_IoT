@@ -350,7 +350,7 @@ class DashboardController {
         if (gas > 500) {
             gasStatus.textContent = '🚨 Alerta';
             gasStatus.className = 'status-label danger';
-        } else if (gas > 200) {
+        } else if (gas > 350) {
             gasStatus.textContent = '⚠️ Atención';
             gasStatus.className = 'status-label warning';
         } else {
@@ -407,7 +407,7 @@ class DashboardController {
                 if (gasValue > 500) {
                     gasEl.textContent = '🚨 Peligro';
                     gasEl.style.color = 'var(--danger)';
-                } else if (gasValue > 200) {
+                } else if (gasValue > 350) {
                     gasEl.textContent = '⚠️ Atención';
                     gasEl.style.color = 'var(--warning)';
                 } else {
@@ -463,7 +463,7 @@ class DashboardController {
                     this.addAlert('danger', '💨 Fuga de gas detectada', 
                         `Nivel de gas: ${this.data.gas.toFixed(0)} ppm`);
                     hasAlert = true;
-                } else if (this.data.gas > 200) {
+                } else if (this.data.gas > 350) {
                     this.addAlert('warning', '⚠️ Nivel de gas elevado', 
                         `Nivel de gas: ${this.data.gas.toFixed(0)} ppm`);
                     hasAlert = true;
@@ -556,7 +556,7 @@ class DashboardController {
     showBrowserNotification(title, message) {
         try {
             if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification('🔔 SmartFood Monitor', {
+                new Notification('🔔 NexusTrack IoT', {
                     body: `${title}: ${message}`,
                     icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">❄️</text></svg>',
                     silent: true
